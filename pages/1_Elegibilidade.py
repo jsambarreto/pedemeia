@@ -213,7 +213,7 @@ else:
                     lambda x: "<br>".join(textwrap.wrap(str(x), width=18))
                 )
     
-                fig_etapa = px.bar(etapa_counts, x='Etapa de Ensino Visual', y='Quantidade', 
+                fig_etapa = px.bar(etapa_counts, x='Etapa de Ensino', y='Quantidade', 
                                    text_auto=True, color_discrete_sequence=['#d62728'])
                 fig_etapa.update_layout(xaxis={'categoryorder':'array', 'categoryarray': etapa_counts['Etapa de Ensino'].tolist()})
                 st.plotly_chart(fig_etapa, use_container_width=True)
