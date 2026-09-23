@@ -58,7 +58,7 @@ def load_data(file):
     # Coluna para ordenar internamente as etapas (25, 26, 30, 31...)
     df['Ordem_Etapa'] = df['Código Etapa Ensino'].astype(int)
     
-    df['Etapa de Ensino (Traduzida)'] = df['Código Etapa Ensino'].map(ETAPAS_MAP).fillna(df['Código Etapa Ensino'] + ' - Outra Etapa')
+    df['Etapa de Ensino'] = df['Código Etapa Ensino'].map(ETAPAS_MAP).fillna(df['Código Etapa Ensino'] + ' - Outra Etapa')
     
     df['Lista_Motivos'] = df['Detalhamento'].apply(extrair_motivos)
     df['Motivos_Formatados'] = df['Lista_Motivos'].apply(
@@ -110,11 +110,11 @@ if 'Situação' in df_filtrado.columns:
     if situacao_selecionada:
         df_filtrado = df_filtrado[df_filtrado['Situação'].isin(situacao_selecionada)]
 
-if 'Etapa de Ensino (Traduzida)' in df_filtrado.columns:
-    etapas = df_filtrado[['Ordem_Etapa', 'Etapa de Ensino (Traduzida)']].drop_duplicates().sort_values(by='Ordem_Etapa')['Etapa de Ensino (Traduzida)'].tolist()
+if 'Etapa de Ensino' in df_filtrado.columns:
+    etapas = df_filtrado[['Ordem_Etapa', 'Etapa de Ensino']].drop_duplicates().sort_values(by='Ordem_Etapa')['Etapa de Ensino'].tolist()
     etapa_selecionada = st.sidebar.multiselect("📚 Etapa de Ensino:", options=etapas, default=[])
     if etapa_selecionada:
-        df_filtrado = df_filtrado[df_filtrado['Etapa de Ensino (Traduzida)'].isin(etapa_selecionada)]
+        df_filtrado = df_filtrado[df_filtrado['Etapa de Ensino'].isin(etapa_selecionada)]
 
 if 'Situação' in df_filtrado.columns:
     todos_motivos_listas = df_filtrado[df_filtrado['Situação'] != 'Elegível']['Lista_Motivos'].tolist()
@@ -146,7 +146,7 @@ if estudante_selecionado:
     st.subheader("👤 Detalhamento da Elegibilidade do Estudante")
     
     colunas_exibicao = [
-        'Nome', 'CPF Formatado', 'NIS Formatado', 'Etapa de Ensino (Traduzida)', 
+        'Nome', 'CPF Formatado', 'NIS Formatado', 'Etapa de Ensino', 
         'Situação', 'Motivos_Formatados'
     ]
     colunas_exibicao = [col for col in colunas_exibicao if col in df_filtrado.columns]
@@ -155,7 +155,6 @@ if estudante_selecionado:
     df_detalhe.rename(columns={
         'CPF Formatado': 'CPF',
         'NIS Formatado': 'NIS',
-        'Etapa de Ensino (Traduzida)': 'Etapa de Ensino',
         'Motivos_Formatados': 'Motivos / Pendências'
     }, inplace=True, errors='ignore')
     
@@ -204,12 +203,13 @@ else:
             # Só faz sentido mostrar gráfico de inelegibilidade se houver alunos não elegíveis visíveis
             df_nao_elegivel = df_filtrado[df_filtrado['Situação'] == 'Não elegível'] if 'Situação' in df_filtrado.columns else pd.DataFrame()
             
-            if not df_nao_elegivel.empty and 'Etapa de Ensino (Traduzida)' in df_nao_elegivel.columns:
+            if not df_nao_elegivel.empty and 'Etapa de Ensino' in df_nao_elegivel.columns:
                 st.markdown("#### Inelegibilidade por Etapa de Ensino")
-                etapa_counts = df_nao_elegivel.groupby(['Etapa de Ensino (Traduzida)', 'Ordem_Etapa']).size().reset_index(name='Quantidade')
+                etapa_counts = df_nao_elegivel.groupby(['Etapa de Ensino', 'Ordem_Etapa']).size().reset_index(name='Quantidade')
                 etapa_counts = etapa_counts.sort_values(by='Ordem_Etapa')
                 
-                etapa_counts['Etapa de Ensino Visual'] = etapa_counts['Etapa de Ensino (Traduzida)'].apply(
+                # Aplica a quebra de linha visual sobrescrevendo a coluna original para não criar sufixos
+                etapa_counts['Etapa de Ensino'] = etapa_counts['Etapa de Ensino'].apply(
                     lambda x: "<br>".join(textwrap.wrap(str(x), width=18))
                 )
     
@@ -255,7 +255,7 @@ else:
         st.write(f"A apresentar **{len(df_filtrado)}** registo(s) com base nos filtros selecionados.")
         
         colunas_desejadas = [
-            'Nome', 'CPF Formatado', 'Etapa de Ensino (Traduzida)', 
+            'Nome', 'CPF Formatado', 'Etapa de Ensino', 
             'Situação', 'Motivos_Formatados'
         ]
         
@@ -267,7 +267,6 @@ else:
         
         df_tabela.rename(columns={
             'CPF Formatado': 'CPF',
-            'Etapa de Ensino (Traduzida)': 'Etapa de Ensino',
             'Motivos_Formatados': 'Motivos / Pendências'
         }, inplace=True, errors='ignore')
         
