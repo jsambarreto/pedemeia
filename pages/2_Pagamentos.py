@@ -179,3 +179,37 @@ if not df_filtrado.empty:
     st.plotly_chart(fig_sit, use_container_width=True)
 else:
     st.warning("Nenhum dado encontrado para os filtros selecionados. Tente limpar os filtros na barra lateral.")
+
+# ==========================
+# TABELA DE DETALHAMENTO (LISTA DE ALUNOS)
+# ==========================
+st.markdown("---")
+st.subheader("📋 Detalhamento dos Estudantes")
+
+if not df_filtrado.empty:
+    st.write(f"A apresentar **{len(df_filtrado)}** registo(s) com base nos filtros selecionados.")
+    
+    # Vamos definir as colunas mais importantes para não poluir a visualização.
+    # Pode adicionar ou remover colunas desta lista conforme os nomes exatos que estão na sua planilha.
+    colunas_desejadas = [
+        'Nome', 
+        'CPF', 
+        'Nome da Unidade de Ensino', 
+        'Tipo de incentivo', 
+        'Situação', 
+        'Descrição da parcela'
+    ]
+    
+    # Garante que apenas colunas que realmente existem na planilha serão exibidas, evitando erros
+    colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
+    
+    # Se por acaso nenhuma das colunas acima existir, mostra todas as colunas
+    if not colunas_exibicao:
+        colunas_exibicao = df_filtrado.columns.tolist()
+        
+    df_tabela = df_filtrado[colunas_exibicao].copy()
+    
+    # Exibe a tabela interativa (ocultando o índice numérico lateral para ficar mais limpo)
+    st.dataframe(df_tabela, use_container_width=True, hide_index=True)
+else:
+    st.info("Nenhum estudante encontrado com os filtros atuais.")
