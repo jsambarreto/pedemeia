@@ -58,39 +58,48 @@ except Exception as e:
 # ==========================
 st.sidebar.markdown("---")
 st.sidebar.header("🔍 Filtros de Busca")
-st.sidebar.markdown("Selecione as opções abaixo. Os filtros funcionam em cascata.")
 
 df_filtrado = df.copy()
 
-unidades = sorted(df_filtrado['Nome da Unidade de Ensino'].dropna().unique().tolist())
-unidade_selecionada = st.sidebar.multiselect("🏫 Selecione o(s) Campus:", options=unidades, default=[])
-if unidade_selecionada:
-    df_filtrado = df_filtrado[df_filtrado['Nome da Unidade de Ensino'].isin(unidade_selecionada)]
+# 1. Filtro de Campus
+if 'Nome da Unidade de Ensino' in df_filtrado.columns:
+    unidades = sorted(df_filtrado['Nome da Unidade de Ensino'].unique().tolist())
+    unidade_selecionada = st.sidebar.multiselect("🏫 Selecione o(s) Campus:", options=unidades, default=[])
+    if unidade_selecionada:
+        df_filtrado = df_filtrado[df_filtrado['Nome da Unidade de Ensino'].isin(unidade_selecionada)]
 
-anos = sorted(df_filtrado['Ano'].dropna().unique().tolist())
-ano_selecionado = st.sidebar.multiselect("📅 Ano de Referência:", options=anos, default=[])
-if ano_selecionado:
-    df_filtrado = df_filtrado[df_filtrado['Ano'].isin(ano_selecionado)]
+# 2. Filtro de Ano e Mês
+if 'Ano' in df_filtrado.columns and 'Mês' in df_filtrado.columns:
+    anos = sorted(df_filtrado['Ano'].unique().tolist())
+    ano_selecionado = st.sidebar.multiselect("📅 Ano:", options=anos, default=[])
+    if ano_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Ano'].isin(ano_selecionado)]
+        
+    meses = sorted(df_filtrado['Mês'].unique().tolist())
+    mes_selecionado = st.sidebar.multiselect("🗓️ Mês:", options=meses, default=[])
+    if mes_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Mês'].isin(mes_selecionado)]
 
-meses = sorted(df_filtrado['Mês'].dropna().unique().tolist())
-mes_selecionado = st.sidebar.multiselect("📅 Mês de Referência:", options=meses, default=[])
-if mes_selecionado:
-    df_filtrado = df_filtrado[df_filtrado['Mês'].isin(mes_selecionado)]
+# 3. Filtro de Tipo de Incentivo
+if 'Tipo de incentivo' in df_filtrado.columns:
+    tipos = sorted(df_filtrado['Tipo de incentivo'].dropna().unique().tolist())
+    tipo_selecionado = st.sidebar.multiselect("💰 Tipo de Incentivo:", options=tipos, default=[])
+    if tipo_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Tipo de incentivo'].isin(tipo_selecionado)]
 
-tipos = sorted(df_filtrado['Tipo de incentivo'].dropna().unique().tolist())
-tipo_selecionado = st.sidebar.multiselect("🏷️ Tipo de Incentivo:", options=tipos, default=[])
-if tipo_selecionado:
-    df_filtrado = df_filtrado[df_filtrado['Tipo de incentivo'].isin(tipo_selecionado)]
+# 4. Filtro de Situação
+if 'Situação' in df_filtrado.columns:
+    situacoes = sorted(df_filtrado['Situação'].dropna().unique().tolist())
+    situacao_selecionada = st.sidebar.multiselect("🎯 Situação da Parcela:", options=situacoes, default=[])
+    if situacao_selecionada:
+        df_filtrado = df_filtrado[df_filtrado['Situação'].isin(situacao_selecionada)]
 
-status_list = sorted(df_filtrado['Status'].dropna().unique().tolist())
-status_selecionado = st.sidebar.multiselect("💳 Situação de Pagamento:", options=status_list, default=[])
-if status_selecionado:
-    df_filtrado = df_filtrado[df_filtrado['Status'].isin(status_selecionado)]
-
-estudantes_list = sorted(df_filtrado['Nome'].dropna().unique().tolist())
-estudante_selecionado = st.sidebar.multiselect("🎓 Selecione o Estudante (Opcional):", options=estudantes_list, default=[])
-if estudante_selecionado:
-    df_filtrado = df_filtrado[df_filtrado['Nome'].isin(estudante_selecionado)]
+# 5. Filtro de Estudante
+if 'Nome' in df_filtrado.columns:
+    estudantes = sorted(df_filtrado['Nome'].dropna().unique().tolist())
+    estudante_selecionado = st.sidebar.multiselect("🎓 Selecione o Estudante (Opcional):", options=estudantes, default=[])
+    if estudante_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Nome'].isin(estudante_selecionado)]
 
 # ==========================
 # LÓGICA DE EXIBIÇÃO CONDICIONAL
