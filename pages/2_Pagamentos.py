@@ -61,6 +61,14 @@ st.sidebar.header("🔍 Filtros de Busca")
 
 df_filtrado = df.copy()
 
+# Prevenção de NameError: Inicializamos todas as variáveis como listas vazias
+unidade_selecionada = []
+ano_selecionado = []
+mes_selecionado = []
+tipo_selecionado = []
+situacao_selecionada = []
+estudante_selecionado = []
+
 # 1. Filtro de Campus
 if 'Nome da Unidade de Ensino' in df_filtrado.columns:
     unidades = sorted(df_filtrado['Nome da Unidade de Ensino'].unique().tolist())
