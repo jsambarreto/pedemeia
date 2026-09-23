@@ -215,7 +215,7 @@ else:
     
                 fig_etapa = px.bar(etapa_counts, x='Etapa de Ensino Visual', y='Quantidade', 
                                    text_auto=True, color_discrete_sequence=['#d62728'])
-                fig_etapa.update_layout(xaxis={'categoryorder':'array', 'categoryarray': etapa_counts['Etapa de Ensino Visual'].tolist()})
+                fig_etapa.update_layout(xaxis={'categoryorder':'array', 'categoryarray': etapa_counts['Etapa de Ensino'].tolist()})
                 st.plotly_chart(fig_etapa, use_container_width=True)
             else:
                 st.success("Nenhum aluno inelegível encontrado para exibir neste gráfico.")
