@@ -55,7 +55,7 @@ def load_data(file):
     
     df['Código Etapa Ensino'] = df['Código Etapa Ensino'].fillna(0).astype(int).astype(str)
     
-    # Criamos uma coluna puramente para ordenar internamente (25, 26, 30, 31...)
+    # Coluna para ordenar internamente as etapas (25, 26, 30, 31...)
     df['Ordem_Etapa'] = df['Código Etapa Ensino'].astype(int)
     
     df['Etapa de Ensino (Traduzida)'] = df['Código Etapa Ensino'].map(ETAPAS_MAP).fillna(df['Código Etapa Ensino'] + ' - Outra Etapa')
@@ -91,135 +91,138 @@ st.sidebar.header("🔍 Filtros de Busca")
 
 df_filtrado = df.copy()
 
-unidades = sorted(df_filtrado['Nome da Unidade de Ensino'].dropna().unique().tolist())
-unidade_selecionada = st.sidebar.multiselect("🏫 Selecione o(s) Campus:", options=unidades, default=[])
-if unidade_selecionada:
-    df_filtrado = df_filtrado[df_filtrado['Nome da Unidade de Ensino'].isin(unidade_selecionada)]
+# Inicializamos todas as variáveis como listas vazias para evitar NameError
+unidade_selecionada = []
+situacao_selecionada = []
+etapa_selecionada = []
+motivo_selecionado = []
+estudante_selecionado = []
 
-situacoes = sorted(df_filtrado['Situação'].dropna().unique().tolist())
-situacao_selecionada = st.sidebar.multiselect("🎯 Situação:", options=situacoes, default=[])
-if situacao_selecionada:
-    df_filtrado = df_filtrado[df_filtrado['Situação'].isin(situacao_selecionada)]
+if 'Nome da Unidade de Ensino' in df_filtrado.columns:
+    unidades = sorted(df_filtrado['Nome da Unidade de Ensino'].dropna().unique().tolist())
+    unidade_selecionada = st.sidebar.multiselect("🏫 Selecione o(s) Campus:", options=unidades, default=[])
+    if unidade_selecionada:
+        df_filtrado = df_filtrado[df_filtrado['Nome da Unidade de Ensino'].isin(unidade_selecionada)]
 
-# Filtro lateral já ordenado usando o código INEP
-etapas = df_filtrado[['Ordem_Etapa', 'Etapa de Ensino (Traduzida)']].drop_duplicates().sort_values(by='Ordem_Etapa')['Etapa de Ensino (Traduzida)'].tolist()
-etapa_selecionada = st.sidebar.multiselect("📚 Etapa de Ensino:", options=etapas, default=[])
-if etapa_selecionada:
-    df_filtrado = df_filtrado[df_filtrado['Etapa de Ensino (Traduzida)'].isin(etapa_selecionada)]
+if 'Situação' in df_filtrado.columns:
+    situacoes = sorted(df_filtrado['Situação'].dropna().unique().tolist())
+    situacao_selecionada = st.sidebar.multiselect("🎯 Situação:", options=situacoes, default=[])
+    if situacao_selecionada:
+        df_filtrado = df_filtrado[df_filtrado['Situação'].isin(situacao_selecionada)]
 
-todos_motivos_listas = df_filtrado[df_filtrado['Situação'] != 'Elegível']['Lista_Motivos'].tolist()
-motivos_unicos = sorted(list(set([motivo for sublista in todos_motivos_listas for motivo in sublista])))
+if 'Etapa de Ensino (Traduzida)' in df_filtrado.columns:
+    etapas = df_filtrado[['Ordem_Etapa', 'Etapa de Ensino (Traduzida)']].drop_duplicates().sort_values(by='Ordem_Etapa')['Etapa de Ensino (Traduzida)'].tolist()
+    etapa_selecionada = st.sidebar.multiselect("📚 Etapa de Ensino:", options=etapas, default=[])
+    if etapa_selecionada:
+        df_filtrado = df_filtrado[df_filtrado['Etapa de Ensino (Traduzida)'].isin(etapa_selecionada)]
 
-motivo_selecionado = st.sidebar.multiselect(
-    "⚠️ Motivo da Inelegibilidade:", 
-    options=motivos_unicos, 
-    default=[],
-    help="Filtra alunos que possuam pelo menos um dos motivos selecionados."
-)
+if 'Situação' in df_filtrado.columns:
+    todos_motivos_listas = df_filtrado[df_filtrado['Situação'] != 'Elegível']['Lista_Motivos'].tolist()
+    motivos_unicos = sorted(list(set([motivo for sublista in todos_motivos_listas for motivo in sublista])))
+    
+    motivo_selecionado = st.sidebar.multiselect(
+        "⚠️ Motivo da Inelegibilidade:", 
+        options=motivos_unicos, 
+        default=[],
+        help="Filtra alunos que possuam pelo menos um dos motivos selecionados."
+    )
+    if motivo_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Lista_Motivos'].apply(lambda x: any(m in x for m in motivo_selecionado))]
 
-if motivo_selecionado:
-    df_filtrado = df_filtrado[df_filtrado['Lista_Motivos'].apply(lambda x: any(m in x for m in motivo_selecionado))]
+if 'Nome' in df_filtrado.columns:
+    estudantes = sorted(df_filtrado['Nome'].dropna().unique().tolist())
+    estudante_selecionado = st.sidebar.multiselect("🎓 Selecione o Estudante (Opcional):", options=estudantes, default=[])
+    if estudante_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Nome'].isin(estudante_selecionado)]
 
-estudantes = sorted(df_filtrado['Nome'].dropna().unique().tolist())
-estudante_selecionado = st.sidebar.multiselect("🎓 Selecione o Estudante (Opcional):", options=estudantes, default=[])
-if estudante_selecionado:
-    df_filtrado = df_filtrado[df_filtrado['Nome'].isin(estudante_selecionado)]
 
 # ==========================
-# DETALHAMENTO DO ESTUDANTE
+# LÓGICA DE EXIBIÇÃO CONDICIONAL
 # ==========================
 if estudante_selecionado:
+    # ---------------------------------------------------------
+    # VISÃO DO ESTUDANTE
+    # ---------------------------------------------------------
     st.subheader("👤 Detalhamento da Elegibilidade do Estudante")
     
     colunas_exibicao = [
         'Nome', 'CPF Formatado', 'NIS Formatado', 'Etapa de Ensino (Traduzida)', 
         'Situação', 'Motivos_Formatados'
     ]
+    colunas_exibicao = [col for col in colunas_exibicao if col in df_filtrado.columns]
     
     df_detalhe = df_filtrado[colunas_exibicao].copy()
-    
     df_detalhe.rename(columns={
         'CPF Formatado': 'CPF',
         'NIS Formatado': 'NIS',
         'Etapa de Ensino (Traduzida)': 'Etapa de Ensino',
         'Motivos_Formatados': 'Motivos / Pendências'
-    }, inplace=True)
+    }, inplace=True, errors='ignore')
     
     st.table(df_detalhe.set_index('Nome'))
     
     st.markdown("**Instruções de Correção detalhadas:**")
     for index, row in df_filtrado.iterrows():
-        st.info(f"**{row['Nome']}**: {row['Descrição']}")
-    st.markdown("---")
+        st.info(f"**{row['Nome']}**: {row.get('Descrição', 'Sem descrição disponível')}")
+
 else:
-    # ==========================
-    # MÉTRICAS PRINCIPAIS (KPIs)
-    # ==========================
+    # ---------------------------------------------------------
+    # VISÃO GERAL (Dashboard completo)
+    # ---------------------------------------------------------
     st.subheader("📈 Resumo da Elegibilidade")
     col1, col2, col3, col4 = st.columns(4)
-
+    
     total_alunos = len(df_filtrado)
-    elegiveis = len(df_filtrado[df_filtrado['Situação'] == 'Elegível'])
-    nao_elegiveis = len(df_filtrado[df_filtrado['Situação'] == 'Não elegível'])
-
-    if total_alunos > 0:
-        pct_elegivel = (elegiveis / total_alunos) * 100
-    else:
-        pct_elegivel = 0
-
+    elegiveis = len(df_filtrado[df_filtrado['Situação'] == 'Elegível']) if 'Situação' in df_filtrado.columns else 0
+    nao_elegiveis = len(df_filtrado[df_filtrado['Situação'] == 'Não elegível']) if 'Situação' in df_filtrado.columns else 0
+    
+    pct_elegivel = (elegiveis / total_alunos) * 100 if total_alunos > 0 else 0
+    
     col1.metric("Total de Estudantes Analisados", total_alunos)
     col2.metric("Elegíveis", elegiveis)
     col3.metric("Não Elegíveis (Com pendências)", nao_elegiveis)
     col4.metric("Taxa de Elegibilidade", f"{pct_elegivel:.1f}%")
-
+    
     st.markdown("---")
-
-    # ==========================
-    # GRÁFICOS DE ANÁLISE
-    # ==========================
+    
     if not df_filtrado.empty:
         col_graf1, col_graf2 = st.columns(2)
-
+    
         with col_graf1:
-            st.markdown("#### Proporção de Elegibilidade")
-            sit_counts = df_filtrado['Situação'].value_counts().reset_index()
-            sit_counts.columns = ['Situação', 'Quantidade']
-            fig_sit = px.pie(sit_counts, values='Quantidade', names='Situação', hole=0.4, 
-                            color='Situação',
-                            color_discrete_map={'Elegível': '#2ca02c', 'Não elegível': '#d62728'})
-            st.plotly_chart(fig_sit, use_container_width=True)
-
+            if not situacao_selecionada and 'Situação' in df_filtrado.columns:
+                st.markdown("#### Proporção de Elegibilidade")
+                sit_counts = df_filtrado['Situação'].value_counts().reset_index()
+                sit_counts.columns = ['Situação', 'Quantidade']
+                fig_sit = px.pie(sit_counts, values='Quantidade', names='Situação', hole=0.4, 
+                                 color='Situação',
+                                 color_discrete_map={'Elegível': '#2ca02c', 'Não elegível': '#d62728'})
+                st.plotly_chart(fig_sit, use_container_width=True)
+            else:
+                st.info("💡 Gráfico de proporções ocultado porque há um filtro de Situação ativo.")
+    
         with col_graf2:
-            st.markdown("#### Inelegibilidade por Etapa de Ensino")
-            df_nao_elegivel = df_filtrado[df_filtrado['Situação'] == 'Não elegível']
-            if not df_nao_elegivel.empty:
-                
-                # 1. Agrupa contando as quantidades, mas mantém a coluna de ordenação
+            # Só faz sentido mostrar gráfico de inelegibilidade se houver alunos não elegíveis visíveis
+            df_nao_elegivel = df_filtrado[df_filtrado['Situação'] == 'Não elegível'] if 'Situação' in df_filtrado.columns else pd.DataFrame()
+            
+            if not df_nao_elegivel.empty and 'Etapa de Ensino (Traduzida)' in df_nao_elegivel.columns:
+                st.markdown("#### Inelegibilidade por Etapa de Ensino")
                 etapa_counts = df_nao_elegivel.groupby(['Etapa de Ensino (Traduzida)', 'Ordem_Etapa']).size().reset_index(name='Quantidade')
-                
-                # 2. Ordena o dataframe com base na coluna numérica (25, 26, 30, 31...)
                 etapa_counts = etapa_counts.sort_values(by='Ordem_Etapa')
                 
-                # 3. Quebra de linha no rótulo
                 etapa_counts['Etapa de Ensino Visual'] = etapa_counts['Etapa de Ensino (Traduzida)'].apply(
                     lambda x: "<br>".join(textwrap.wrap(str(x), width=18))
                 )
-
+    
                 fig_etapa = px.bar(etapa_counts, x='Etapa de Ensino Visual', y='Quantidade', 
-                                text_auto=True,
-                                color_discrete_sequence=['#d62728'])
-                
-                # 4. Força o Plotly a não reorganizar as categorias (categoryorder = 'array')
-                fig_etapa.update_layout(
-                    xaxis={'categoryorder':'array', 'categoryarray': etapa_counts['Etapa de Ensino Visual'].tolist()}
-                )
-                
+                                   text_auto=True, color_discrete_sequence=['#d62728'])
+                fig_etapa.update_layout(xaxis={'categoryorder':'array', 'categoryarray': etapa_counts['Etapa de Ensino Visual'].tolist()})
                 st.plotly_chart(fig_etapa, use_container_width=True)
             else:
-                st.success("Nenhum aluno inelegível para os filtros selecionados!")
-
+                st.success("Nenhum aluno inelegível encontrado para exibir neste gráfico.")
+    
+        # Gráfico de Motivos
         st.markdown("#### Principais Motivos de Inelegibilidade")
-        todos_motivos_grafico = [motivo for sublista in df_filtrado['Lista_Motivos'].tolist() for motivo in sublista]
+        todos_motivos_grafico = [motivo for sublista in df_filtrado['Lista_Motivos'].tolist() for motivo in sublista] if 'Lista_Motivos' in df_filtrado.columns else []
         
         if todos_motivos_grafico:
             df_motivos_contagem = pd.Series(todos_motivos_grafico).value_counts().reset_index()
@@ -228,50 +231,40 @@ else:
             df_motivos_contagem['Motivo (Resumo)'] = df_motivos_contagem['Motivo Completo'].apply(
                 lambda x: str(x)[:70] + '...' if len(str(x)) > 70 else str(x)
             )
-            
             df_motivos_contagem['Motivo Completo'] = df_motivos_contagem['Motivo Completo'].apply(
                 lambda x: "<br>".join(textwrap.wrap(str(x), width=80))
             )
             
             fig_motivos = px.bar(df_motivos_contagem, y='Motivo (Resumo)', x='Quantidade', 
-                                orientation='h', color='Quantidade', 
-                                color_continuous_scale='Reds',
-                                hover_data={'Motivo Completo': True, 'Motivo (Resumo)': False})
+                                 orientation='h', color='Quantidade', color_continuous_scale='Reds',
+                                 hover_data={'Motivo Completo': True, 'Motivo (Resumo)': False})
             
             altura_dinamica = max(300, len(df_motivos_contagem) * 45)
-            
-            fig_motivos.update_layout(
-                yaxis={'categoryorder':'total ascending'},
-                height=altura_dinamica
-            )
+            fig_motivos.update_layout(yaxis={'categoryorder':'total ascending'}, height=altura_dinamica)
             st.plotly_chart(fig_motivos, use_container_width=True)
         else:
-            st.info("Não há motivos de inelegibilidade para os dados atuais (todos estão elegíveis ou os dados estão vazios).")
-    else:
-        st.warning("Nenhum dado encontrado para os filtros selecionados.")
-    # ==========================
-    # TABELA DE DETALHAMENTO (LISTA GERAL)
-    # ==========================
+            st.info("Não há motivos de inelegibilidade para os dados atuais (todos estão elegíveis ou a base está limpa).")
+            
+    # ---------------------------------------------------------
+    # TABELA DE DETALHAMENTO GERAL
+    # ---------------------------------------------------------
     st.markdown("---")
     st.subheader("📋 Lista de Estudantes Filtrados")
-
+    
     if not df_filtrado.empty:
         st.write(f"A apresentar **{len(df_filtrado)}** registo(s) com base nos filtros selecionados.")
         
-        # Colunas específicas da planilha de Elegibilidade
         colunas_desejadas = [
-            'Nome', 
-            'CPF Formatado', 
-            'Etapa de Ensino (Traduzida)', 
-            'Situação', 
-            'Motivos_Formatados'
+            'Nome', 'CPF Formatado', 'Etapa de Ensino (Traduzida)', 
+            'Situação', 'Motivos_Formatados'
         ]
         
         colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
-        
+        if not colunas_exibicao:
+            colunas_exibicao = df_filtrado.columns.tolist()
+            
         df_tabela = df_filtrado[colunas_exibicao].copy()
         
-        # Renomeando para os cabeçalhos ficarem limpos na tela
         df_tabela.rename(columns={
             'CPF Formatado': 'CPF',
             'Etapa de Ensino (Traduzida)': 'Etapa de Ensino',
