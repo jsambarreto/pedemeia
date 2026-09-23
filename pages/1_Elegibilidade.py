@@ -151,133 +151,133 @@ if estudante_selecionado:
     for index, row in df_filtrado.iterrows():
         st.info(f"**{row['Nome']}**: {row['Descrição']}")
     st.markdown("---")
-
-# ==========================
-# MÉTRICAS PRINCIPAIS (KPIs)
-# ==========================
-st.subheader("📈 Resumo da Elegibilidade")
-col1, col2, col3, col4 = st.columns(4)
-
-total_alunos = len(df_filtrado)
-elegiveis = len(df_filtrado[df_filtrado['Situação'] == 'Elegível'])
-nao_elegiveis = len(df_filtrado[df_filtrado['Situação'] == 'Não elegível'])
-
-if total_alunos > 0:
-    pct_elegivel = (elegiveis / total_alunos) * 100
 else:
-    pct_elegivel = 0
+    # ==========================
+    # MÉTRICAS PRINCIPAIS (KPIs)
+    # ==========================
+    st.subheader("📈 Resumo da Elegibilidade")
+    col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Total de Estudantes Analisados", total_alunos)
-col2.metric("Elegíveis", elegiveis)
-col3.metric("Não Elegíveis (Com pendências)", nao_elegiveis)
-col4.metric("Taxa de Elegibilidade", f"{pct_elegivel:.1f}%")
+    total_alunos = len(df_filtrado)
+    elegiveis = len(df_filtrado[df_filtrado['Situação'] == 'Elegível'])
+    nao_elegiveis = len(df_filtrado[df_filtrado['Situação'] == 'Não elegível'])
 
-st.markdown("---")
-
-# ==========================
-# GRÁFICOS DE ANÁLISE
-# ==========================
-if not df_filtrado.empty:
-    col_graf1, col_graf2 = st.columns(2)
-
-    with col_graf1:
-        st.markdown("#### Proporção de Elegibilidade")
-        sit_counts = df_filtrado['Situação'].value_counts().reset_index()
-        sit_counts.columns = ['Situação', 'Quantidade']
-        fig_sit = px.pie(sit_counts, values='Quantidade', names='Situação', hole=0.4, 
-                         color='Situação',
-                         color_discrete_map={'Elegível': '#2ca02c', 'Não elegível': '#d62728'})
-        st.plotly_chart(fig_sit, use_container_width=True)
-
-    with col_graf2:
-        st.markdown("#### Inelegibilidade por Etapa de Ensino")
-        df_nao_elegivel = df_filtrado[df_filtrado['Situação'] == 'Não elegível']
-        if not df_nao_elegivel.empty:
-            
-            # 1. Agrupa contando as quantidades, mas mantém a coluna de ordenação
-            etapa_counts = df_nao_elegivel.groupby(['Etapa de Ensino (Traduzida)', 'Ordem_Etapa']).size().reset_index(name='Quantidade')
-            
-            # 2. Ordena o dataframe com base na coluna numérica (25, 26, 30, 31...)
-            etapa_counts = etapa_counts.sort_values(by='Ordem_Etapa')
-            
-            # 3. Quebra de linha no rótulo
-            etapa_counts['Etapa de Ensino Visual'] = etapa_counts['Etapa de Ensino (Traduzida)'].apply(
-                lambda x: "<br>".join(textwrap.wrap(str(x), width=18))
-            )
-
-            fig_etapa = px.bar(etapa_counts, x='Etapa de Ensino Visual', y='Quantidade', 
-                               text_auto=True,
-                               color_discrete_sequence=['#d62728'])
-            
-            # 4. Força o Plotly a não reorganizar as categorias (categoryorder = 'array')
-            fig_etapa.update_layout(
-                xaxis={'categoryorder':'array', 'categoryarray': etapa_counts['Etapa de Ensino Visual'].tolist()}
-            )
-            
-            st.plotly_chart(fig_etapa, use_container_width=True)
-        else:
-            st.success("Nenhum aluno inelegível para os filtros selecionados!")
-
-    st.markdown("#### Principais Motivos de Inelegibilidade")
-    todos_motivos_grafico = [motivo for sublista in df_filtrado['Lista_Motivos'].tolist() for motivo in sublista]
-    
-    if todos_motivos_grafico:
-        df_motivos_contagem = pd.Series(todos_motivos_grafico).value_counts().reset_index()
-        df_motivos_contagem.columns = ['Motivo Completo', 'Quantidade']
-        
-        df_motivos_contagem['Motivo (Resumo)'] = df_motivos_contagem['Motivo Completo'].apply(
-            lambda x: str(x)[:70] + '...' if len(str(x)) > 70 else str(x)
-        )
-        
-        df_motivos_contagem['Motivo Completo'] = df_motivos_contagem['Motivo Completo'].apply(
-            lambda x: "<br>".join(textwrap.wrap(str(x), width=80))
-        )
-        
-        fig_motivos = px.bar(df_motivos_contagem, y='Motivo (Resumo)', x='Quantidade', 
-                             orientation='h', color='Quantidade', 
-                             color_continuous_scale='Reds',
-                             hover_data={'Motivo Completo': True, 'Motivo (Resumo)': False})
-        
-        altura_dinamica = max(300, len(df_motivos_contagem) * 45)
-        
-        fig_motivos.update_layout(
-            yaxis={'categoryorder':'total ascending'},
-            height=altura_dinamica
-        )
-        st.plotly_chart(fig_motivos, use_container_width=True)
+    if total_alunos > 0:
+        pct_elegivel = (elegiveis / total_alunos) * 100
     else:
-        st.info("Não há motivos de inelegibilidade para os dados atuais (todos estão elegíveis ou os dados estão vazios).")
-else:
-    st.warning("Nenhum dado encontrado para os filtros selecionados.")
-# ==========================
-# TABELA DE DETALHAMENTO (LISTA GERAL)
-# ==========================
-st.markdown("---")
-st.subheader("📋 Lista de Estudantes Filtrados")
+        pct_elegivel = 0
 
-if not df_filtrado.empty:
-    st.write(f"A apresentar **{len(df_filtrado)}** registo(s) com base nos filtros selecionados.")
-    
-    # Colunas específicas da planilha de Elegibilidade
-    colunas_desejadas = [
-        'Nome', 
-        'CPF Formatado', 
-        'Etapa de Ensino (Traduzida)', 
-        'Situação', 
-        'Motivos_Formatados'
-    ]
-    
-    colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
-    
-    df_tabela = df_filtrado[colunas_exibicao].copy()
-    
-    # Renomeando para os cabeçalhos ficarem limpos na tela
-    df_tabela.rename(columns={
-        'CPF Formatado': 'CPF',
-        'Etapa de Ensino (Traduzida)': 'Etapa de Ensino',
-        'Motivos_Formatados': 'Motivos / Pendências'
-    }, inplace=True, errors='ignore')
-    
-    st.dataframe(df_tabela, use_container_width=True, hide_index=True)
-else:
-    st.info("Nenhum estudante encontrado com os filtros atuais.")
+    col1.metric("Total de Estudantes Analisados", total_alunos)
+    col2.metric("Elegíveis", elegiveis)
+    col3.metric("Não Elegíveis (Com pendências)", nao_elegiveis)
+    col4.metric("Taxa de Elegibilidade", f"{pct_elegivel:.1f}%")
+
+    st.markdown("---")
+
+    # ==========================
+    # GRÁFICOS DE ANÁLISE
+    # ==========================
+    if not df_filtrado.empty:
+        col_graf1, col_graf2 = st.columns(2)
+
+        with col_graf1:
+            st.markdown("#### Proporção de Elegibilidade")
+            sit_counts = df_filtrado['Situação'].value_counts().reset_index()
+            sit_counts.columns = ['Situação', 'Quantidade']
+            fig_sit = px.pie(sit_counts, values='Quantidade', names='Situação', hole=0.4, 
+                            color='Situação',
+                            color_discrete_map={'Elegível': '#2ca02c', 'Não elegível': '#d62728'})
+            st.plotly_chart(fig_sit, use_container_width=True)
+
+        with col_graf2:
+            st.markdown("#### Inelegibilidade por Etapa de Ensino")
+            df_nao_elegivel = df_filtrado[df_filtrado['Situação'] == 'Não elegível']
+            if not df_nao_elegivel.empty:
+                
+                # 1. Agrupa contando as quantidades, mas mantém a coluna de ordenação
+                etapa_counts = df_nao_elegivel.groupby(['Etapa de Ensino (Traduzida)', 'Ordem_Etapa']).size().reset_index(name='Quantidade')
+                
+                # 2. Ordena o dataframe com base na coluna numérica (25, 26, 30, 31...)
+                etapa_counts = etapa_counts.sort_values(by='Ordem_Etapa')
+                
+                # 3. Quebra de linha no rótulo
+                etapa_counts['Etapa de Ensino Visual'] = etapa_counts['Etapa de Ensino (Traduzida)'].apply(
+                    lambda x: "<br>".join(textwrap.wrap(str(x), width=18))
+                )
+
+                fig_etapa = px.bar(etapa_counts, x='Etapa de Ensino Visual', y='Quantidade', 
+                                text_auto=True,
+                                color_discrete_sequence=['#d62728'])
+                
+                # 4. Força o Plotly a não reorganizar as categorias (categoryorder = 'array')
+                fig_etapa.update_layout(
+                    xaxis={'categoryorder':'array', 'categoryarray': etapa_counts['Etapa de Ensino Visual'].tolist()}
+                )
+                
+                st.plotly_chart(fig_etapa, use_container_width=True)
+            else:
+                st.success("Nenhum aluno inelegível para os filtros selecionados!")
+
+        st.markdown("#### Principais Motivos de Inelegibilidade")
+        todos_motivos_grafico = [motivo for sublista in df_filtrado['Lista_Motivos'].tolist() for motivo in sublista]
+        
+        if todos_motivos_grafico:
+            df_motivos_contagem = pd.Series(todos_motivos_grafico).value_counts().reset_index()
+            df_motivos_contagem.columns = ['Motivo Completo', 'Quantidade']
+            
+            df_motivos_contagem['Motivo (Resumo)'] = df_motivos_contagem['Motivo Completo'].apply(
+                lambda x: str(x)[:70] + '...' if len(str(x)) > 70 else str(x)
+            )
+            
+            df_motivos_contagem['Motivo Completo'] = df_motivos_contagem['Motivo Completo'].apply(
+                lambda x: "<br>".join(textwrap.wrap(str(x), width=80))
+            )
+            
+            fig_motivos = px.bar(df_motivos_contagem, y='Motivo (Resumo)', x='Quantidade', 
+                                orientation='h', color='Quantidade', 
+                                color_continuous_scale='Reds',
+                                hover_data={'Motivo Completo': True, 'Motivo (Resumo)': False})
+            
+            altura_dinamica = max(300, len(df_motivos_contagem) * 45)
+            
+            fig_motivos.update_layout(
+                yaxis={'categoryorder':'total ascending'},
+                height=altura_dinamica
+            )
+            st.plotly_chart(fig_motivos, use_container_width=True)
+        else:
+            st.info("Não há motivos de inelegibilidade para os dados atuais (todos estão elegíveis ou os dados estão vazios).")
+    else:
+        st.warning("Nenhum dado encontrado para os filtros selecionados.")
+    # ==========================
+    # TABELA DE DETALHAMENTO (LISTA GERAL)
+    # ==========================
+    st.markdown("---")
+    st.subheader("📋 Lista de Estudantes Filtrados")
+
+    if not df_filtrado.empty:
+        st.write(f"A apresentar **{len(df_filtrado)}** registo(s) com base nos filtros selecionados.")
+        
+        # Colunas específicas da planilha de Elegibilidade
+        colunas_desejadas = [
+            'Nome', 
+            'CPF Formatado', 
+            'Etapa de Ensino (Traduzida)', 
+            'Situação', 
+            'Motivos_Formatados'
+        ]
+        
+        colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
+        
+        df_tabela = df_filtrado[colunas_exibicao].copy()
+        
+        # Renomeando para os cabeçalhos ficarem limpos na tela
+        df_tabela.rename(columns={
+            'CPF Formatado': 'CPF',
+            'Etapa de Ensino (Traduzida)': 'Etapa de Ensino',
+            'Motivos_Formatados': 'Motivos / Pendências'
+        }, inplace=True, errors='ignore')
+        
+        st.dataframe(df_tabela, use_container_width=True, hide_index=True)
+    else:
+        st.info("Nenhum estudante encontrado com os filtros atuais.")
