@@ -123,7 +123,7 @@ if estudante_selecionado:
     
     colunas_exibicao_aluno = [
         'Nome', 'CPF', 'Mês', 'Tipo de incentivo', 
-        'Status', 'Descrição de situação da parcela'
+        'Status', 'Detalhes do processamento da parcela'
     ]
     # Garante que só puxamos colunas que existem na planilha importada
     colunas_exibicao_aluno = [col for col in colunas_exibicao_aluno if col in df_filtrado.columns]
@@ -203,7 +203,7 @@ else:
         
         colunas_desejadas = [
             'Nome', 'CPF', 'Nome da Unidade de Ensino', 
-            'Mês', 'Tipo de incentivo', 'Status', 'Descrição de situação da parcela'
+            'Mês', 'Tipo de incentivo', 'Status', 'Detalhes do processamento da parcela'
         ]
         
         colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
