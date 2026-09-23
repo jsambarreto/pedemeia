@@ -13,13 +13,13 @@ def load_data(file):
     # Tratamento básico de nulos
     if 'Nome da Unidade de Ensino' in df.columns:
         df['Nome da Unidade de Ensino'] = df['Nome da Unidade de Ensino'].fillna('Não Informado')
-    if 'Situação' in df.columns:
-        df['Situação'] = df['Situação'].fillna('Desconhecida')
+    if 'Status' in df.columns:
+        df['Status'] = df['Status'].fillna('Desconhecida')
         
-    # Extrair Ano e Mês se o formato for YYYYMM (ex: 202401)
-    if 'Mês de referência' in df.columns:
-        df['Mês de referência'] = df['Mês de referência'].fillna(0).astype(int).astype(str)
-        df['Ano'] = df['Mês de referência'].apply(lambda x: x[:4] if len(x) == 6 else 'N/A')
+    # Extrair Ano e Mês se o formato for YYYYMM (ex: 202604 da coluna Período de referência)
+    if 'Período de referência' in df.columns:
+        df['Período de referência'] = df['Período de referência'].fillna(0).astype(int).astype(str)
+        df['Ano'] = df['Período de referência'].apply(lambda x: x[:4] if len(x) == 6 else 'N/A')
         
         meses_map = {
             '01': '01 - Janeiro', '02': '02 - Fevereiro', '03': '03 - Março',
@@ -27,13 +27,12 @@ def load_data(file):
             '07': '07 - Julho', '08': '08 - Agosto', '09': '09 - Setembro',
             '10': '10 - Outubro', '11': '11 - Novembro', '12': '12 - Dezembro'
         }
-        df['Mês'] = df['Mês de referência'].apply(lambda x: meses_map.get(x[4:6], 'N/A') if len(x) == 6 else 'N/A')
+        df['Mês'] = df['Período de referência'].apply(lambda x: meses_map.get(x[4:6], 'N/A') if len(x) == 6 else 'N/A')
     
-    # Tratar a coluna Valor para somatório financeiro
-    col_valor = 'Valor da parcela' if 'Valor da parcela' in df.columns else ('Valor' if 'Valor' in df.columns else None)
-    if col_valor:
+    # Tratar a coluna Valor do incentivo para somatório financeiro
+    if 'Valor do incentivo' in df.columns:
         # Se os dados vierem com 'R$' ou vírgulas, forçamos para número
-        df['Valor Numérico'] = pd.to_numeric(df[col_valor].astype(str).str.replace('R$', '').str.replace(',', '.').str.strip(), errors='coerce').fillna(0)
+        df['Valor Numérico'] = pd.to_numeric(df['Valor do incentivo'].astype(str).str.replace('R$', '').str.replace(',', '.').str.strip(), errors='coerce').fillna(0)
     
     return df
 
@@ -61,12 +60,12 @@ st.sidebar.header("🔍 Filtros de Busca")
 
 df_filtrado = df.copy()
 
-# Prevenção de NameError: Inicializamos todas as variáveis como listas vazias
+# Inicializamos todas as variáveis como listas vazias para evitar NameError
 unidade_selecionada = []
 ano_selecionado = []
 mes_selecionado = []
 tipo_selecionado = []
-situacao_selecionada = []
+status_selecionado = []
 estudante_selecionado = []
 
 # 1. Filtro de Campus
@@ -95,12 +94,12 @@ if 'Tipo de incentivo' in df_filtrado.columns:
     if tipo_selecionado:
         df_filtrado = df_filtrado[df_filtrado['Tipo de incentivo'].isin(tipo_selecionado)]
 
-# 4. Filtro de Situação
-if 'Situação' in df_filtrado.columns:
-    situacoes = sorted(df_filtrado['Situação'].dropna().unique().tolist())
-    situacao_selecionada = st.sidebar.multiselect("🎯 Situação da Parcela:", options=situacoes, default=[])
-    if situacao_selecionada:
-        df_filtrado = df_filtrado[df_filtrado['Situação'].isin(situacao_selecionada)]
+# 4. Filtro de Status (Antiga Situação)
+if 'Status' in df_filtrado.columns:
+    status_unicos = sorted(df_filtrado['Status'].dropna().unique().tolist())
+    status_selecionado = st.sidebar.multiselect("🎯 Status da Parcela:", options=status_unicos, default=[])
+    if status_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Status'].isin(status_selecionado)]
 
 # 5. Filtro de Estudante
 if 'Nome' in df_filtrado.columns:
@@ -113,8 +112,8 @@ if 'Nome' in df_filtrado.columns:
 # LÓGICA DE EXIBIÇÃO CONDICIONAL
 # ==========================
 
-# STATUS CONSIDERADOS COMO PAGOS (Ajuste caso o SGP mude a nomenclatura)
-situacoes_pagas = ["Pago", "Enviado para pagamento", "Crédito efetivado", "Efetivado", "Crédito Efetivado"]
+# STATUS CONSIDERADOS COMO PAGOS (Baseado na planilha do SGP)
+situacoes_pagas = ["Pago", "Enviada para pagamento", "Crédito efetivado", "Efetivado", "Crédito Efetivado"]
 
 if estudante_selecionado:
     # ---------------------------------------------------------
@@ -124,7 +123,7 @@ if estudante_selecionado:
     
     colunas_exibicao_aluno = [
         'Nome', 'CPF', 'Mês', 'Tipo de incentivo', 
-        'Situação', 'Descrição da parcela'
+        'Status', 'Descrição de situação da parcela'
     ]
     # Garante que só puxamos colunas que existem na planilha importada
     colunas_exibicao_aluno = [col for col in colunas_exibicao_aluno if col in df_filtrado.columns]
@@ -143,12 +142,12 @@ else:
     total_registos = len(df_filtrado)
     
     pagos = 0
-    if 'Situação' in df_filtrado.columns:
-        pagos = len(df_filtrado[df_filtrado['Situação'].isin(situacoes_pagas)])
+    if 'Status' in df_filtrado.columns:
+        pagos = len(df_filtrado[df_filtrado['Status'].isin(situacoes_pagas)])
     
     valor_total = 0
     if 'Valor Numérico' in df_filtrado.columns:
-        valor_total = df_filtrado.loc[df_filtrado['Situação'].isin(situacoes_pagas), 'Valor Numérico'].sum()
+        valor_total = df_filtrado.loc[df_filtrado['Status'].isin(situacoes_pagas), 'Valor Numérico'].sum()
     
     col1.metric("Total de Parcelas Analisadas", total_registos)
     col2.metric("Parcelas Pagas/Enviadas", pagos)
@@ -156,7 +155,7 @@ else:
     pct_pago = (pagos / total_registos * 100) if total_registos > 0 else 0
     col3.metric("Taxa de Sucesso", f"{pct_pago:.1f}%")
         
-    col4.metric("Volume Financeiro Pago", f"R$ {valor_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    col4.metric("Volume Financeiro", f"R$ {valor_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
     
     st.markdown("---")
     
@@ -165,35 +164,35 @@ else:
         col_graf1, col_graf2 = st.columns(2)
         
         with col_graf1:
-            if not situacao_selecionada and 'Situação' in df_filtrado.columns:
-                st.markdown("#### Proporção das Situações")
-                sit_counts = df_filtrado['Situação'].value_counts().reset_index()
-                sit_counts.columns = ['Situação', 'Quantidade']
-                fig_sit = px.pie(sit_counts, values='Quantidade', names='Situação', hole=0.4)
+            if not status_selecionado and 'Status' in df_filtrado.columns:
+                st.markdown("#### Proporção dos Status")
+                sit_counts = df_filtrado['Status'].value_counts().reset_index()
+                sit_counts.columns = ['Status', 'Quantidade']
+                fig_sit = px.pie(sit_counts, values='Quantidade', names='Status', hole=0.4)
                 st.plotly_chart(fig_sit, use_container_width=True)
             else:
-                st.info("💡 Gráfico de proporções ocultado porque há um filtro de Situação ativo.")
+                st.info("💡 Gráfico de proporções ocultado porque há um filtro de Status ativo.")
                 
         with col_graf2:
             # Lógica para mostrar ou esconder o gráfico financeiro
             mostrar_grafico_financeiro = False
-            if not situacao_selecionada:
+            if not status_selecionado:
                 mostrar_grafico_financeiro = True
-            elif any(sit in situacoes_pagas for sit in situacao_selecionada):
+            elif any(sit in situacoes_pagas for sit in status_selecionado):
                 mostrar_grafico_financeiro = True
                 
             if mostrar_grafico_financeiro and 'Valor Numérico' in df_filtrado.columns:
-                st.markdown("#### Volume Pago por Tipo de Incentivo")
+                st.markdown("#### Volume por Tipo de Incentivo")
                 
-                df_pago = df_filtrado[df_filtrado['Situação'].isin(situacoes_pagas)]
+                df_pago = df_filtrado[df_filtrado['Status'].isin(situacoes_pagas)]
                 if not df_pago.empty and 'Tipo de incentivo' in df_pago.columns:
                     df_financeiro = df_pago.groupby('Tipo de incentivo')['Valor Numérico'].sum().reset_index()
                     fig_fin = px.bar(df_financeiro, x='Tipo de incentivo', y='Valor Numérico', text_auto='.2s')
                     st.plotly_chart(fig_fin, use_container_width=True)
                 else:
-                    st.warning("Nenhum valor pago identificado para os filtros atuais.")
+                    st.warning("Nenhum valor financeiro de sucesso identificado para os filtros atuais.")
             else:
-                st.info("💡 Gráfico financeiro ocultado pois a situação filtrada não reflete parcelas pagas.")
+                st.info("💡 Gráfico financeiro ocultado pois o status filtrado não reflete parcelas pagas.")
     
     # --- TABELA DE DETALHAMENTO GERAL ---
     st.markdown("---")
@@ -204,7 +203,7 @@ else:
         
         colunas_desejadas = [
             'Nome', 'CPF', 'Nome da Unidade de Ensino', 
-            'Mês', 'Tipo de incentivo', 'Situação', 'Descrição da parcela'
+            'Mês', 'Tipo de incentivo', 'Status', 'Descrição de situação da parcela'
         ]
         
         colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
