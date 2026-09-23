@@ -249,3 +249,35 @@ if not df_filtrado.empty:
         st.info("Não há motivos de inelegibilidade para os dados atuais (todos estão elegíveis ou os dados estão vazios).")
 else:
     st.warning("Nenhum dado encontrado para os filtros selecionados.")
+# ==========================
+# TABELA DE DETALHAMENTO (LISTA GERAL)
+# ==========================
+st.markdown("---")
+st.subheader("📋 Lista de Estudantes Filtrados")
+
+if not df_filtrado.empty:
+    st.write(f"A apresentar **{len(df_filtrado)}** registo(s) com base nos filtros selecionados.")
+    
+    # Colunas específicas da planilha de Elegibilidade
+    colunas_desejadas = [
+        'Nome', 
+        'CPF Formatado', 
+        'Etapa de Ensino (Traduzida)', 
+        'Situação', 
+        'Motivos_Formatados'
+    ]
+    
+    colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
+    
+    df_tabela = df_filtrado[colunas_exibicao].copy()
+    
+    # Renomeando para os cabeçalhos ficarem limpos na tela
+    df_tabela.rename(columns={
+        'CPF Formatado': 'CPF',
+        'Etapa de Ensino (Traduzida)': 'Etapa de Ensino',
+        'Motivos_Formatados': 'Motivos / Pendências'
+    }, inplace=True, errors='ignore')
+    
+    st.dataframe(df_tabela, use_container_width=True, hide_index=True)
+else:
+    st.info("Nenhum estudante encontrado com os filtros atuais.")
