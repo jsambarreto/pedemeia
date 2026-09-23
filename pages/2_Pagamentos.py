@@ -108,108 +108,108 @@ if estudante_selecionado:
     
     st.table(df_detalhe[colunas_exibicao].set_index('Nome'))
     st.markdown("---")
-
-# ==========================
-# MÉTRICAS PRINCIPAIS (KPIs)
-# ==========================
-st.subheader("📈 Resumo dos Filtros Aplicados" if len(df_filtrado) < len(df) else "📈 Resumo Geral da Rede")
-col1, col2, col3, col4 = st.columns(4)
-
-volume_pago = df_filtrado[df_filtrado['Status'] == 'Pago']['Valor do incentivo'].sum()
-total_incentivos = len(df_filtrado)
-total_alunos = df_filtrado['CPF'].nunique()
-bloqueados = len(df_filtrado[df_filtrado['Status'] == 'Bloqueado'])
-
-col1.metric("Volume Total Pago", f"R$ {volume_pago:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-col2.metric("Total de Estudantes", total_alunos)
-col3.metric("Parcelas Processadas", total_incentivos)
-col4.metric("Parcelas Bloqueadas", bloqueados)
-
-st.markdown("---")
-
-# ==========================
-# GRÁFICOS DE ANÁLISE
-# ==========================
-if not df_filtrado.empty:
-    col_graf1, col_graf2 = st.columns(2)
-
-    with col_graf1:
-        st.markdown("#### Situação Geral das Parcelas")
-        status_counts = df_filtrado['Status'].value_counts().reset_index()
-        status_counts.columns = ['Status', 'Quantidade']
-        fig_status = px.pie(status_counts, values='Quantidade', names='Status', hole=0.4, 
-                            color_discrete_sequence=px.colors.qualitative.Pastel)
-        st.plotly_chart(fig_status, use_container_width=True)
-
-    with col_graf2:
-        st.markdown("#### Volume Pago por Tipo de Incentivo")
-        df_pago = df_filtrado[df_filtrado['Status'] == 'Pago']
-        if not df_pago.empty:
-            vol_por_tipo = df_pago.groupby('Tipo de incentivo')['Valor do incentivo'].sum().reset_index()
-            fig_tipo = px.bar(vol_por_tipo, x='Tipo de incentivo', y='Valor do incentivo', 
-                              text_auto='.2s', color='Tipo de incentivo',
-                              color_discrete_sequence=px.colors.qualitative.Set2)
-            st.plotly_chart(fig_tipo, use_container_width=True)
-        else:
-            st.info("Nenhum valor pago correspondente aos filtros atuais.")
-
-    st.markdown("#### Motivos e Detalhamento da Situação (Visão Geral)")
-    sit_counts = df_filtrado['Descrição de situação da parcela'].value_counts().reset_index()
-    sit_counts.columns = ['Descrição Completa', 'Quantidade']
-
-    sit_counts['Motivo (Resumo)'] = sit_counts['Descrição Completa'].apply(
-        lambda x: str(x)[:70] + '...' if len(str(x)) > 70 else str(x)
-    )
-
-    sit_counts['Descrição Completa'] = sit_counts['Descrição Completa'].apply(
-        lambda x: "<br>".join(textwrap.wrap(str(x), width=80))
-    )
-
-    fig_sit = px.bar(sit_counts, y='Motivo (Resumo)', x='Quantidade', 
-                     orientation='h', color='Quantidade', 
-                     color_continuous_scale='Blues',
-                     hover_data={'Descrição Completa': True, 'Motivo (Resumo)': False})
-    
-    altura_dinamica = max(400, len(sit_counts) * 45)
-    
-    fig_sit.update_layout(
-        yaxis={'categoryorder':'total ascending'},
-        height=altura_dinamica
-    )
-    st.plotly_chart(fig_sit, use_container_width=True)
 else:
-    st.warning("Nenhum dado encontrado para os filtros selecionados. Tente limpar os filtros na barra lateral.")
+    # ==========================
+    # MÉTRICAS PRINCIPAIS (KPIs)
+    # ==========================
+    st.subheader("📈 Resumo dos Filtros Aplicados" if len(df_filtrado) < len(df) else "📈 Resumo Geral da Rede")
+    col1, col2, col3, col4 = st.columns(4)
 
-# ==========================
-# TABELA DE DETALHAMENTO (LISTA DE ALUNOS)
-# ==========================
-st.markdown("---")
-st.subheader("📋 Detalhamento dos Estudantes")
+    volume_pago = df_filtrado[df_filtrado['Status'] == 'Pago']['Valor do incentivo'].sum()
+    total_incentivos = len(df_filtrado)
+    total_alunos = df_filtrado['CPF'].nunique()
+    bloqueados = len(df_filtrado[df_filtrado['Status'] == 'Bloqueado'])
 
-if not df_filtrado.empty:
-    st.write(f"A apresentar **{len(df_filtrado)}** registo(s) com base nos filtros selecionados.")
-    
-    # Vamos definir as colunas mais importantes para não poluir a visualização.
-    # Pode adicionar ou remover colunas desta lista conforme os nomes exatos que estão na sua planilha.
-    colunas_desejadas = [
-        'Nome', 
-        'CPF', 
-        'Nome da Unidade de Ensino', 
-        'Tipo de incentivo', 
-        'Situação', 
-        'Descrição da parcela'
-    ]
-    
-    # Garante que apenas colunas que realmente existem na planilha serão exibidas, evitando erros
-    colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
-    
-    # Se por acaso nenhuma das colunas acima existir, mostra todas as colunas
-    if not colunas_exibicao:
-        colunas_exibicao = df_filtrado.columns.tolist()
+    col1.metric("Volume Total Pago", f"R$ {volume_pago:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    col2.metric("Total de Estudantes", total_alunos)
+    col3.metric("Parcelas Processadas", total_incentivos)
+    col4.metric("Parcelas Bloqueadas", bloqueados)
+
+    st.markdown("---")
+
+    # ==========================
+    # GRÁFICOS DE ANÁLISE
+    # ==========================
+    if not df_filtrado.empty:
+        col_graf1, col_graf2 = st.columns(2)
+
+        with col_graf1:
+            st.markdown("#### Situação Geral das Parcelas")
+            status_counts = df_filtrado['Status'].value_counts().reset_index()
+            status_counts.columns = ['Status', 'Quantidade']
+            fig_status = px.pie(status_counts, values='Quantidade', names='Status', hole=0.4, 
+                                color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig_status, use_container_width=True)
+
+        with col_graf2:
+            st.markdown("#### Volume Pago por Tipo de Incentivo")
+            df_pago = df_filtrado[df_filtrado['Status'] == 'Pago']
+            if not df_pago.empty:
+                vol_por_tipo = df_pago.groupby('Tipo de incentivo')['Valor do incentivo'].sum().reset_index()
+                fig_tipo = px.bar(vol_por_tipo, x='Tipo de incentivo', y='Valor do incentivo', 
+                                text_auto='.2s', color='Tipo de incentivo',
+                                color_discrete_sequence=px.colors.qualitative.Set2)
+                st.plotly_chart(fig_tipo, use_container_width=True)
+            else:
+                st.info("Nenhum valor pago correspondente aos filtros atuais.")
+
+        st.markdown("#### Motivos e Detalhamento da Situação (Visão Geral)")
+        sit_counts = df_filtrado['Descrição de situação da parcela'].value_counts().reset_index()
+        sit_counts.columns = ['Descrição Completa', 'Quantidade']
+
+        sit_counts['Motivo (Resumo)'] = sit_counts['Descrição Completa'].apply(
+            lambda x: str(x)[:70] + '...' if len(str(x)) > 70 else str(x)
+        )
+
+        sit_counts['Descrição Completa'] = sit_counts['Descrição Completa'].apply(
+            lambda x: "<br>".join(textwrap.wrap(str(x), width=80))
+        )
+
+        fig_sit = px.bar(sit_counts, y='Motivo (Resumo)', x='Quantidade', 
+                        orientation='h', color='Quantidade', 
+                        color_continuous_scale='Blues',
+                        hover_data={'Descrição Completa': True, 'Motivo (Resumo)': False})
         
-    df_tabela = df_filtrado[colunas_exibicao].copy()
-    
-    # Exibe a tabela interativa (ocultando o índice numérico lateral para ficar mais limpo)
-    st.dataframe(df_tabela, use_container_width=True, hide_index=True)
-else:
-    st.info("Nenhum estudante encontrado com os filtros atuais.")
+        altura_dinamica = max(400, len(sit_counts) * 45)
+        
+        fig_sit.update_layout(
+            yaxis={'categoryorder':'total ascending'},
+            height=altura_dinamica
+        )
+        st.plotly_chart(fig_sit, use_container_width=True)
+    else:
+        st.warning("Nenhum dado encontrado para os filtros selecionados. Tente limpar os filtros na barra lateral.")
+
+    # ==========================
+    # TABELA DE DETALHAMENTO (LISTA DE ALUNOS)
+    # ==========================
+    st.markdown("---")
+    st.subheader("📋 Detalhamento dos Estudantes")
+
+    if not df_filtrado.empty:
+        st.write(f"A apresentar **{len(df_filtrado)}** registo(s) com base nos filtros selecionados.")
+        
+        # Vamos definir as colunas mais importantes para não poluir a visualização.
+        # Pode adicionar ou remover colunas desta lista conforme os nomes exatos que estão na sua planilha.
+        colunas_desejadas = [
+            'Nome', 
+            'CPF', 
+            'Nome da Unidade de Ensino', 
+            'Tipo de incentivo', 
+            'Situação', 
+            'Descrição da parcela'
+        ]
+        
+        # Garante que apenas colunas que realmente existem na planilha serão exibidas, evitando erros
+        colunas_exibicao = [col for col in colunas_desejadas if col in df_filtrado.columns]
+        
+        # Se por acaso nenhuma das colunas acima existir, mostra todas as colunas
+        if not colunas_exibicao:
+            colunas_exibicao = df_filtrado.columns.tolist()
+            
+        df_tabela = df_filtrado[colunas_exibicao].copy()
+        
+        # Exibe a tabela interativa (ocultando o índice numérico lateral para ficar mais limpo)
+        st.dataframe(df_tabela, use_container_width=True, hide_index=True)
+    else:
+        st.info("Nenhum estudante encontrado com os filtros atuais.")
